@@ -1,0 +1,96 @@
+---
+title: "Heart Disease Analysis – Typical Angina"
+author: "Massimiliano Di Giuseppe"
+date: "2026-04-25"
+output: html_document
+---
+
+# Introduction
+
+This analysis investigates which variables distinguish healthy and diseased individuals among patients presenting with typical angina.
+
+The goal is to identify the most informative predictors while controlling for symptom type.
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+
+df <- read.csv("https://raw.githubusercontent.com/mrdbourke/zero-to-mastery-ml/master/data/heart-disease.csv")
+```
+
+
+
+```{r data-cleaning}
+df_clean <- df %>%
+  mutate(
+    sex = ifelse(sex == 1, "Maschio", "Femmina"),
+    target = ifelse(target == 1, "Malattia", "Sano"),
+    cp = case_when(
+      cp == 0 ~ "Angina tipica",
+      cp == 1 ~ "Angina atipica",
+      cp == 2 ~ "Dolore non anginoso",
+      cp == 3 ~ "Asintomatico",
+      TRUE ~ NA_character_
+    ),
+    fbs = ifelse(fbs == 1, ">120 mg/dl", "≤120 mg/dl"),
+    exang = ifelse(exang == 1, "Sì", "No")
+  ) %>%
+  rename(
+    eta = age,
+    sesso = sex,
+    pressione_riposo = trestbps,
+    colesterolo = chol,
+    glicemia_digiuno = fbs,
+    ecg_riposo = restecg,
+    freq_cardiaca_max = thalach,
+    angina_sforzo = exang,
+    depressione_st = oldpeak,
+    pendenza_st = slope,
+    vasi_principali = ca,
+    talassemia = thal,
+    tipo_dolore = cp,
+    diagnosi = target
+  ) %>%
+  mutate(
+    malattia_binaria = ifelse(diagnosi == "Malattia", 1, 0)
+  )
+```
+
+```{r filtering}
+df_angina_tipica <- df_clean %>%
+  filter(tipo_dolore == "Angina tipica")
+```
+
+# Logistic Regression Model
+
+```{r logistic-model}
+model <- glm(
+  malattia_binaria ~ 
+    pressione_riposo +
+    colesterolo +
+    freq_cardiaca_max +
+    depressione_st +
+    vasi_principali +
+    pendenza_st +
+    ecg_riposo +
+    sesso,
+  data = df_angina_tipica,
+  family = binomial
+)
+
+summary(model)
+exp(coef(model))
+```
+
+## Results
+
+The analysis shows that vascular involvement (number of major vessels) and sex are the strongest predictors of disease.
+
+ST slope shows a moderate association, while traditional cardiovascular variables such as cholesterol and resting blood pressure do not significantly discriminate between healthy and diseased individuals.
+
+This suggests that the relationship between variables is not purely linear and depends on the clinical context.
+
+## Conclusion
+
+This analysis highlights the importance of multivariate approaches in medical data.
+
+Single variables alone are often insufficient, and meaningful insights emerge only when multiple factors are considered together.
